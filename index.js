@@ -1,10 +1,12 @@
+import { Editor, TiledObjectModel } from './modules/index.js';
+
 const editor = new Editor('canvas-root');
 
 const data = {
   id: "32a89e0f-c6b0-4ab5-b16c-507a841b0a35",
   imageURL: "https://dev-oss.vland.live/material/system/624ebcff4ff28daf5e79bafa/5a80d05e92e94c45a166e5899fbd0562_1649327359.png",
-  left: 0,
-  top: 0,
+  left: 64,
+  top: 64,
   width: 64,
   height: 64,
   zIndex: 6,
@@ -53,3 +55,6 @@ editor.add(model1);
 
 const model2 = new TiledObjectModel(data2);
 editor.add(model2);
+
+console.log('editor', editor);
+window.editor = editor;
