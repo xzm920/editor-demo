@@ -1,10 +1,11 @@
 export class SelectionView {
-  constructor(views, canvasView) {
+  constructor(views, parent) {
     this.type = 'selection';
     this.views = views;
+    this.parent = parent;
     const objects = views.map((v) => v.getMainObject());
     this.mainObject = new fabric.ActiveSelection(objects, {
-      canvas: canvasView.canvas,
+      canvas: parent.canvas,
       hasControls: false,
       lockMovementY: true,
       lockMovementX: true,
@@ -21,8 +22,9 @@ export class SelectionView {
     this.state = {
       left: bounds.left,
       top: bounds.top,
-      width: bounds.height,
+      width: bounds.width,
       height: bounds.height,
+      angle: 0,
     };
   }
 
@@ -64,5 +66,11 @@ export class SelectionView {
         top: v.state.top + deltaY,
       });
     });
+
+    this.parent.requestResetSelection();
   }
+
+  setViewOptions() {}
+
+  dispose() {}
 }

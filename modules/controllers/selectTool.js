@@ -1,3 +1,7 @@
+import { TILE_SIZE } from '../constants/map.js';
+import { RotatedRect } from '../utils/geometry.js';
+import { snapToGrid } from '../utils/map.js';
+
 export class SelectTool {
   constructor(model, view) {
     this.model = model;
@@ -19,8 +23,51 @@ export class SelectTool {
     let isClick = true;
     let target = null;
     let subTarget = null;
+    let lastDeltaX = null;
+    let lastDeltaY = null;
+
+    const calcMovement = (startPoint, endPoint) => {
+      let deltaX;
+      let deltaY;
+      const byTile = this._shouldMoveSelectionByTile();
+      if (byTile) {
+        deltaX = snapToGrid(endPoint.x) - snapToGrid(startPoint.x);
+        deltaY = snapToGrid(endPoint.y) - snapToGrid(startPoint.y);
+      } else {
+        deltaX = endPoint.x - startPoint.x;
+        deltaY = endPoint.y - startPoint.y;
+      }
+
+      // 修正movement
+      const left = startPos.left + deltaX;
+      const top = startPos.top + deltaY;
+      const { width, height, scaleX = 1, scaleY = 1, angle = 0 } = this.view.selection.state;
+      const rotatedRect = new RotatedRect(left, top, width * scaleX, height * scaleY, angle);
+      const bbox = rotatedRect.getBoundingRect();
+      const bounds = this.model.getBounds();
+      const offsetLeft = bbox.left - bounds.left;
+      if (offsetLeft < 0) {
+        deltaX += byTile ? -(Math.floor(offsetLeft / TILE_SIZE) * TILE_SIZE) : -offsetLeft;
+      }
+      const offsetRight = bbox.right - bounds.right;
+      if (offsetRight > 0) {
+        deltaX += byTile ? -(Math.ceil(offsetRight / TILE_SIZE) * TILE_SIZE) : -offsetRight;
+      }
+      const offsetTop = bbox.top - bounds.top;
+      if (offsetTop < 0) {
+        deltaY += byTile ? -(Math.floor(offsetTop / TILE_SIZE) * TILE_SIZE) : -offsetTop;
+      }
+      const offsetBottom = bbox.bottom - bounds.bottom;
+      if (offsetBottom > 0) {
+        deltaY += byTile ? -(Math.ceil(offsetBottom / TILE_SIZE) * TILE_SIZE) : -offsetBottom;
+      }
+
+      return { deltaX, deltaY };
+    }
 
     const handleMouseDown = (e) => {
+      // FIXME: 抽象泄漏
+      if (e.transform && e.transform.action !== 'drag') return;
       isClick = true;
       isDown = true;
       downPoint = e.pos;
@@ -62,9 +109,17 @@ export class SelectTool {
     const handleMouseMove = (e) => {
       isClick = false;
       if (isDown && this.view.selection) {
+        // FIXME:
+        this.view.selection.isMoving = true;
+
         const movePoint = e.pos;
-        const left = startPos.left + movePoint.x - downPoint.x;
-        const top = startPos.top + movePoint.y - downPoint.y;
+        const { deltaX, deltaY } = calcMovement(downPoint, movePoint);
+        if (lastDeltaX === deltaX && lastDeltaY === deltaY) return; // skip
+        lastDeltaX = deltaX;
+        lastDeltaY = deltaY;
+
+        const left = startPos.left + deltaX;
+        const top = startPos.top + deltaY;
         this.view.selection.setState({ left, top });
         this.view.render();
       }
@@ -72,6 +127,9 @@ export class SelectTool {
 
     const handleMouseUp = (e) => {
       if (isDown && this.view.selection) {
+        // FIXME:
+        this.view.selection.isMoving = false;
+
         if (isClick) {
           if (this.view.selection === target && target.type === 'selection') {
             if (subTarget) {
@@ -94,8 +152,8 @@ export class SelectTool {
           }
         } else {
           const upPoint = e.pos;
-          const deltaX = upPoint.x - downPoint.x;
-          const deltaY = upPoint.y - downPoint.y;
+          const { deltaX, deltaY } = calcMovement(downPoint, upPoint);
+
           const left = startPos.left + deltaX;
           const top = startPos.top + deltaY;
           this.view.selection.setState({ left, top });
@@ -115,6 +173,8 @@ export class SelectTool {
       isClick = true;
       target = null;
       subTarget = null;
+      lastDeltaX = null;
+      lastDeltaY = null;
     };
 
     this.view.onMouseDown = handleMouseDown;
@@ -141,5 +201,13 @@ export class SelectTool {
     return () => {
       hotkeys.unbind('backspace, del', handleDelete);
     };
+  }
+
+  _shouldMoveSelectionByTile() {
+    const views = this.view.getSelectedViews();
+    return views.some((v) => {
+      const m = this.model.getModelById(v.id);
+      return m.shouldMoveByTile();
+    });
   }
 }

@@ -1,4 +1,4 @@
-export class TiledObjectPresenter {
+export class SpawnPresenter {
   constructor(model) {
     this.model = model;
     this.view = null;
@@ -36,7 +36,6 @@ export class TiledObjectPresenter {
       height: model.height,
       zIndex: model.zIndex,
       src: model.imageURL,
-      isCollider: model.isCollider,
     };
   }
 }

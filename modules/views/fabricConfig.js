@@ -1,5 +1,7 @@
+import { ImpassableUrl, Layer } from '../constants/map.js';
+
 // config
-export const imageOptions = {
+const baseOptions = {
   lockMovementX: true,
   lockMovementY: true,
   hasControls: false,
@@ -7,13 +9,27 @@ export const imageOptions = {
   borderScaleFactor: 2,
   borderColor: '#8F7EF4',
   borderOpacityWhenMoving: 1,
+  objectCaching: false,
+  selectable: false,
+};
+
+export const imageOptions = {
+  ...baseOptions,
+};
+
+export const textOptions = {
+  ...baseOptions,
+  fontFamily: 'PingFang SC, Microsoft YaHei, Noto Sans, sans-serif',
+  splitByGrapheme: true,
+  editingBorderColor: '#8F7EF4',
+  cursorColor: '#282C4A',
 };
 
 export const impassableOptions = {
   ...imageOptions,
-  src: 'https://dev-oss.vland.live/material/system/65433e2848c544d1ab0c43a51043f095_1649646689.png',
-  zIndex: 9,
+  zIndex: Layer.tileEffect,
   opacity: 0.5,
   evented: false,
   selectable: false,
+  src: ImpassableUrl,
 };

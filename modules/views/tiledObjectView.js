@@ -1,8 +1,10 @@
-import './fabricExtensions.js';
+import { VImage, VImpassable } from './fabricExtensions.js';
 import { imageOptions, impassableOptions } from './fabricConfig.js';
+import { MapItemView } from './mapItemView.js';
 
-export class TiledObjectView {
+export class TiledObjectView extends MapItemView {
   constructor(id, presenter) {
+    super();
     this.id = id;
     this.presenter = presenter;
     this.parent = null;
@@ -14,14 +16,13 @@ export class TiledObjectView {
       height: 0,
       zIndex: 0,
       src: '',
+      isCollider: false,
     };
 
-    const onLoad = () => { this.parent?.render(); };
-    this.mainObject = new fabric.VImage(onLoad, imageOptions);
+    this._onLoad = () => { this.parent?.render(); };
+    this.mainObject = new VImage(this._onLoad, imageOptions);
     this.mainObject.__view = this;
-    this.impassableObject = new fabric.VImage(onLoad, impassableOptions);
-    this.controls = {};
-    this.impassableObject.__view = this;
+    this.impassableObject = null;
   }
 
   getMainObject() {
@@ -29,30 +30,44 @@ export class TiledObjectView {
   }
 
   getObjects() {
-    return [this.mainObject, this.impassableObject];
+    return [this.mainObject, this.impassableObject].filter((o) => o !== null);
   }
 
   setState(state) {
-    const oldSrc = this.state.src;
-    this.state = {
+    const oldState = this.state;
+    const newState = {
       ...this.state,
       ...state,
     };
-    this.mainObject.update(this.state);
+    this.state = newState;
+
+    this.mainObject.set(newState);
     this.mainObject.setCoords();
-    const newSrc = this.state.src;
-    if (newSrc && newSrc !== oldSrc) {
-      this.mainObject.setSrc(newSrc);
+    if (newState.src && newState.src !== oldState.src) {
+      this.mainObject.setSrc(newState.src);
     }
 
-    const impassableState = this._getImpassableState();
-    this.impassableObject.update(impassableState);
-    this.impassableObject.setCoords();
+    if (newState.isCollider && !oldState.isCollider) {
+      this.impassableObject = new VImpassable(this._onLoad, impassableOptions);
+      this.impassableObject.__view = this;
+      const impassableState = this._getImpassableState();
+      this.impassableObject.set(impassableState);
+      this.impassableObject.setCoords();
+    } else if (!newState.isCollider && oldState.isCollider) {
+      this.impassableObject.__view = null;
+      this.impassableObject = null;
+    } else if (newState.isCollider && oldState.isCollider) {
+      const impassableState = this._getImpassableState();
+      this.impassableObject.set(impassableState);
+      this.impassableObject.setCoords();
+    }
   }
 
   setViewOptions(viewOptions) {
-    const impassableState = this._getImpassableState();
-    this.impassableObject.update(impassableState);
+    if (this.impassableObject) {
+      const impassableState = this._getImpassableState();
+      this.impassableObject.set(impassableState);
+    }
   }
 
   dispose() {

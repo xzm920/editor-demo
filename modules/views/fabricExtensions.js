@@ -1,5 +1,5 @@
 // Vland 前缀 V
-fabric.VImage = fabric.util.createClass(fabric.Image, {
+export const VImage = fabric.util.createClass(fabric.Image, {
   initialize: function(onLoad, options) {
     this.__view = null;
     this.__onLoad = onLoad;
@@ -7,13 +7,6 @@ fabric.VImage = fabric.util.createClass(fabric.Image, {
     this.callSuper('initialize', element, options);
     // 初始化时如果options中有src，则立即加载图片资源
     options && options.src && this.setSrc(options.src);
-  },
-  update: function(state) {
-    const inSelection = this.group && this.group.type === 'activeSelection';
-    if (inSelection && ('left' in state || 'top' in state)) {
-      return this;
-    }
-    return this.set(state);
   },
   setSrc: function(src, callback, options) {
     const { width, height } = this;
@@ -31,6 +24,25 @@ fabric.VImage = fabric.util.createClass(fabric.Image, {
   },
 });
 
+export const VImpassable = fabric.util.createClass(fabric.Rect, {
+  type: 'impassable',
+  initialize(onLoad, options) {
+    const { src, ...restOptions } = options;
+    const newOptions = {
+      ...restOptions,
+      fill: 'transparent',
+    };
+    this.callSuper('initialize', newOptions);
+    fabric.util.loadImage(src, (image, isError) => {
+      if (isError) return;
+      this.set('fill', new fabric.Pattern({
+        source: image,
+        repeat: 'repeat',
+      }));
+      onLoad && onLoad();
+    }, this, true);
+  },
+})
 // fabric.Group
 // fabric.Rect
 // fabric.Image

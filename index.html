@@ -5,14 +5,78 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Document</title>
   <style>
+    .tool.active {
+      border-color: red;
+    }
+    .main {
+      display: flex;
+    }
+    .canvas {
+      flex: none;
+    }
+    .panel {
+      flex: 1;
+      overflow: hidden;
+    }
     #canvas-root {
       width: 800px;
       height: 800px;
     }
+    .spin img, .image img {
+      width: 128px;
+      height: 128px;
+      object-fit: contain;
+    }
   </style>
 </head>
 <body>
-  <canvas id="canvas-root"></canvas>
+  <div id="app">
+    <div class="tools">
+      <button class="tool" :class="{'active': currentToolName === 'select'}" @click="onToolClick('select')">select</button>
+      <button class="tool" :class="{'active': currentToolName === 'boxSelect'}" @click="onToolClick('boxSelect')">box select</button>
+      <button class="tool" :class="{'active': currentToolName === 'hand'}" @click="onToolClick('hand')">hand</button>
+      <button class="tool" :class="{'active': currentToolName === 'eraser'}" @click="onToolClick('eraser')">eraser</button>
+      <button @click="onUndo">undo</button>
+      <button @click="onRedo">redo</button>
+      <button @click="onToggleEffect">toggle effect</button>
+      <button @click="onToggleMask">toggle mask</button>
+    </div>
+    <div class="view-controls">
+      <button :disabled="!zoomOutEnabled" @click="onZoomOut">-</button>
+      <input :value="zoom" @change="onZoomChange" step="0.1" />
+      <button :disabled="!zoomInEnabled" @click="onZoomIn">+</button>
+      <button @click="onZoomToFit" >zoom to fit</button>
+    </div>
+    <div class="main">
+      <div class="canvas">
+        <canvas id="canvas-root"></canvas>
+      </div>
+      <div class="panel">
+        <div class="object" v-if="selected && (selected.zIndex === 4 || selected.zIndex === 6)">
+          <div>{{selected.name}}</div>
+          <div class="spin">
+            <button v-if="selected.spin.status" @click="onSwitchPrevClick">prev</button>
+            <img :src="selected.imageURL" />
+            <button v-if="selected.spin.status" @click="onSwitchNextClick">next</button>
+          </div>
+          <div>遮挡人物 <input type="checkbox" :disabled="selected.isCollider" :checked="selected.isMaskPlayer" @change="onMaskPlayerChange" /></div>
+          <div>人物不可通过 <input type="checkbox" :disabled="selected.isMaskPlayer" :checked="selected.isCollider" @change="onColliderChange" /></div>
+          <div>3D视角中变为立体效果 <input type="checkbox" :checked="selected.effect3D" @change="onEffect3DChange" /></div>
+        </div>
+        <div class="image" v-if="selected && (selected.zIndex === 3 || selected.zIndex === 8)">
+          <div>{{selected.name}}</div>
+          <div>
+            <img :src="selected.imageURL" />
+          </div>
+          <div>遮挡人物 <input type="checkbox" :disabled="selected.isCollider" :checked="selected.isMaskPlayer" @change="onMaskPlayerChange" /></div>
+          <div>3D视角中变为立体效果 <input type="checkbox" :checked="selected.effect3D" @change="onEffect3DChange" /></div>
+          <div>不透明度 <input type="range" :value="selected.opacity" min="0" max="1" step="0.01" @change="onOpacityChange" /></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="./ua-parser.min.js"></script>
+  <script src="./vue.global.js"></script>
   <script src="./mitt.js"></script>
   <script src="./hotkeys.js"></script>
   <script src="./fabric.js"></script>
